@@ -47,3 +47,47 @@ KAR主要分为三个阶段：
 
   ![kar1](./image/unisrec3.png)
 
+这篇文章主要是针对跨域的序列预测，这边用了对比学习的方法去分别对sequence和item操作，感觉可以借鉴到KT上，主要还是结合text先进行adaptation。其实这个方法好像挺common的。
+
+## Text Is All You Need: Learning Language Representations for Sequential Recommendation
+
+这篇文章也是讲序列预测的，是lqy学长在组会分享过的一篇文章。这篇文章也是利用了文本，将每个item整理成一个sentence，将item sequence formulate成一个sequence of sentences。这篇文章提出的框架叫做**RECFORMER**。
+
+像这种用文本的motivation好像都提了如果基于ID就不能用于跨域推荐和场景的迁移。具体的做法是将物品表示为键值属性对，可以包含各个方面的文本信息，用Longformer对序列进行编码。
+
+对于item i，它的sentence可以表示为$T_i=\{k_1, v_1, k_2, v_2,\cdots,k_m,v_m\}$
+
+model input 表示为$X=\{[CLS],T_n, T_{n-1}, \cdots,T_1\}$
+
+它这里embedding分为四个，先看图：
+
+![kar1](./image/recformer1.png)
+
+- Token Embedding：表征对应的token，商品属性中文字token对应的embedding，这样就脱离了商品ID的embedding了
+- Token Position Embedding：表征token在序列中的位置
+- Token type Embedding：表征token的类型，有三种，分别是CLS，key，和value
+- Item Position Embedding：表征商品在序列中的位置
+
+对于给定序列中的一个word w，表征表示为$E_w = LayerNorm(A_w+B_w+C_w+D_w)$
+
+序列表征表示为$E_X=[E_{[CLS]},E_{w_1},\cdots,E_{w_l}]$
+
+Recformer计算d维单词表征的方式$[h_{CLS},h_{w_1},\cdots,h_{w_l}]=Longformer(E_X)$
+
+如果对于单个商品，那么就构造sentence$X= \{[CLS], T_i\}$得到商品表征$h_i$
+
+那么就用余弦相似性来预测下一个商品（序列和item）
+
+我们关注这个框架的学习模式，要学习哪些参数，固定哪些东西。
+
+- 首先是预训练：
+
+  - Masked Language Modeling(MLM)
+  - item-item对比学习。使用真实的下一个交互item作为正样本。负样本采用当前batch其他序列中对应的真实的下一个交互item。
+
+- 两阶段微调。保持一个商品特征矩阵，**这个矩阵是从Recformer中编码得到的**。
+
+  阶段1中每个epoch会把item进行编码，更新矩阵，相当于重新encode，模型和矩阵都会更新；
+
+  阶段2中冻结特征矩阵，更新模型中的参数。
+
