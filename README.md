@@ -61,7 +61,7 @@ model input 表示为$X=\{[CLS],T_n, T_{n-1}, \cdots,T_1\}$
 
 它这里embedding分为四个，先看图：
 
-![kar1](./image/recformer1.png)
+![recformer1](./image/recformer1.png)
 
 - Token Embedding：表征对应的token，商品属性中文字token对应的embedding，这样就脱离了商品ID的embedding了
 - Token Position Embedding：表征token在序列中的位置
@@ -91,3 +91,22 @@ Recformer计算d维单词表征的方式$[h_{CLS},h_{w_1},\cdots,h_{w_l}]=Longfo
 
   阶段2中冻结特征矩阵，更新模型中的参数。
 
+## CTRL: Connect Collaborative and Language Model for CTR Prediction
+
+这是华为的一个工作，表格数据和转换后的文本被视作两种不同的模态，分别输入到协同CTR模型和预训练语言模型中。主要的工作就在于一个对齐，然后对CTR模型进行微调。相当于是找一个对齐的东西辅助tune CTR模型。**在线推理时，只用轻量级微调后的CTR模型。**
+
+![ctrl1](./image/ctrl1.png)
+
+他这里好像没有具体写用什么方法进行text的embedding，应该就是可以直接用LLM做一个抽取表征。两边的模型分别得到抽取的特征：
+$$
+h^{tab}=M_{col}(x^{tab})W^{tab}+b^{tab}
+\\
+h^{text}=M_{sem}(x^{text})W^{text}+b^{text}
+$$
+这边就是应用contrastive learning的方法分别对text和tab两边的数据用loss。For example，$L^{text2tab}=-\frac{1}{N}\sum\limits_{k=1}^Nlos\frac{exp(sim(h_k^{text},h_k^{tab})/\tau)}{\sum\limits_{j=1}^Nexp(sim(h_k^{text},h_j^{tab})/\tau)}$
+
+这边其实提到了fine-grained对齐，也就是加一层W和b。
+
+最后的finetune其实就是仅仅用CTR模型。
+
+这篇文章好像构思不算复杂，其实就是应用了一个对齐，然后只tune一边，利用语言模型这边去辅助调整一下CTR模型。这个思路如果应用于CDM的话应该实现起来是不难的，就是改变一下训练的模式，以及加入对比学习（抽取隐层已经写好了）。但是这篇文章的代码还没有开源（
