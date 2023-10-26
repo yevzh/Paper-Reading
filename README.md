@@ -110,3 +110,24 @@ $$
 最后的finetune其实就是仅仅用CTR模型。
 
 这篇文章好像构思不算复杂，其实就是应用了一个对齐，然后只tune一边，利用语言模型这边去辅助调整一下CTR模型。这个思路如果应用于CDM的话应该实现起来是不难的，就是改变一下训练的模式，以及加入对比学习（抽取隐层已经写好了）。但是这篇文章的代码还没有开源（
+
+## ReLLa: Retrieval-enhanced Large Language Models for Lifelong Sequential Behavior Comprehension in Recommendation
+
+同学的paper，听学长说做的很有效果，于是也拜读一下。这篇文章主要是用了retrieval的方法去直接应用大模型进行推理，然后如果用few-shot的话就是选取一部分训练语料这样去构建训练数据然后tune大模型（这里用的是vicuna-13B）
+
+我觉得首先需要学习的是这篇文章对于prompt的设计，从而让大模型直接去推理对于一个物品，是否会点击。（之前竟然没看过这样用大模型去做ctr的，是我孤陋寡闻了）
+
+![rella1](./image/rella1.png)
+
+这里相当于把一个人相关的浏览信息连接了一下，并且附上他的喜好，然后让大模型去推理需要预测的电影，让它直接输出结果。
+
+然后这篇文章的主要工作就是如何进行retrieval，用文本表示。这里采用的方法就是提前对题目的信息用大模型进行encoding，然后从隐层抽取表征，用PCA降维得到一堆向量。之后检索的时候就直接用余弦相似度去减索了，然后拼接成prompt。
+
+![rella2](./image/rella2.png)
+
+这篇文章还提到了可以将recent和semantically similar的进行混合，可以更好预测，这都是后面的trick了，可以不管。
+
+还有一个点在于，这篇文章提到了few-shot，在这里few-shot的意思是选取N个这样的prompt（即（x,y）对）来tune大模型，从而让大模型更好地去做预测，效果是出乎意料的好，可以击败原来full shot的performance.
+
+总而言之，这篇文章好像没有什么框架上的创新点，主要就是在于prompt engineering，用了retrieval的方法去构建prompt让大模型直接去预测。但是如果用在教育上，其实教育的数据是否能支撑这样的方法其实是未知的，文本信息毕竟不如推荐的丰富。
+
