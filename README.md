@@ -131,3 +131,18 @@ $$
 
 总而言之，这篇文章好像没有什么框架上的创新点，主要就是在于prompt engineering，用了retrieval的方法去构建prompt让大模型直接去预测。但是如果用在教育上，其实教育的数据是否能支撑这样的方法其实是未知的，文本信息毕竟不如推荐的丰富。
 
+## LLM-Rec: Personalized Recommendation via Prompting Large Language Models
+
+这篇文章的核心也是用LLM来做prompt engineering来产生augmented text。主要还是看下作者是如何用LLM去产生prompt的。
+
+![llmrec1](./image/llmrec1.png)
+
+这边需要注意的是engagement-guided prompting，这边会通过寻找几个相似的item，然后总结他们的共性。然后结合recommendation的prompting产生最终的model output作为增强文本。这大概就是本篇工作最核心的东西了。
+
+这篇文章的encoder采用的是sentence-BERT，倒是用过；但是这边值得注意的是，选取相似的item这边并不是通过简单的semantic的方式，而是用importance measurement，具体是采用Personalized PageRank score的方式来做的，这个倒是没见过。
+
+这里的user embedding采用128维的向量，然后item侧则把增强向量和原始的向量拼接然后经过MLP最后得到128维度。最后加入baseline，这里采用的是DCN-V2的模型。
+
+![llmrec2](./image/llmrec2.png)
+
+这大概就是整个的框架。这篇文章和先前看的KAR是有一定的相似之处的同样是模型无关的，核心在于prompt engineering，但是好像这个工作更加简单，直接连结过MLP就行了，其实感觉是有点草率的。
